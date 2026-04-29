@@ -1,0 +1,12 @@
+import express from 'express';
+import { addToCart, getUserCart, removeFromCart, updateCartQuantity } from '../controllers/cartController.js';
+import { protect } from '../middlewares/authMiddleware.js';
+import validate from '../middlewares/validate.js';
+import { addToCartSchema, updateQuantitySchema } from '../validations/cartValidation.js';
+const router = express.Router();
+router.use(protect);
+router.get('/', getUserCart);
+router.post('/', validate(addToCartSchema), addToCart);
+router.patch('/:productId', validate(updateQuantitySchema), updateCartQuantity);
+router.delete('/:productId', removeFromCart);
+export default router;

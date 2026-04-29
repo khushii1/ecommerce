@@ -1,0 +1,22 @@
+import express from 'express';
+import authRoutes from './authRoutes.js';
+import userRoutes from './userRoutes.js';
+import adminRoutes from './adminRoutes.js';
+import categoryRoutes from './categoryRoutes.js';
+import productRoutes from './productRoutes.js';
+import blogRoutes from './blogRoutes.js';
+import cartRoutes from './cartRoutes.js';
+import orderRoutes from './orderRoutes.js';
+import contactRoutes from './contactRoutes.js';
+
+const router = express.Router();
+router.use('/auth', authRoutes);
+router.use('/users', userRoutes);
+router.use('/admin', adminRoutes);
+router.use('/categories', categoryRoutes);
+router.use('/products', productRoutes);
+router.use('/blogs', blogRoutes);
+router.use('/cart', cartRoutes);
+router.use('/orders', orderRoutes);
+router.use('/contacts', contactRoutes);
+export default router;

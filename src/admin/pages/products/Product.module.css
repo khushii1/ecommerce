@@ -1,0 +1,149 @@
+.container {
+    background: white;
+    padding: 25px;
+    border-radius: 10px;
+}
+
+/* FORM */
+.form {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.form input,
+.form select {
+    padding: 8px 10px;
+
+    height: 38px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+}
+
+.form button {
+    grid-column: span 1;
+    width: 200px;
+    justify-self: start;
+    background: #b88e2f;
+    color: white;
+    border: none;
+    padding: 12px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.form {
+    align-items: end;
+}
+
+/* PRICE */
+.priceInput {
+    display: flex;
+    align-items: center;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 0 10px;
+}
+
+.priceInput span {
+    margin-right: 5px;
+}
+
+.priceInput input {
+    border: none;
+    outline: none;
+    width: 100%;
+}
+
+/* FILE */
+.fileBox {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.fileBox label {
+    font-size: 14px;
+    font-weight: 500;
+}
+
+/* ERROR */
+.error {
+    color: red;
+    margin-bottom: 10px;
+}
+
+/* TABLE */
+.table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.table th {
+    background: #f8f9fb;
+    padding: 12px;
+    text-align: left;
+}
+
+.table td {
+    padding: 12px;
+    border-top: 1px solid #eee;
+}
+
+/* IMAGES */
+.thumb {
+    width: 60px;
+    height: 60px;
+    object-fit: cover;
+    border-radius: 6px;
+}
+
+.subImages {
+    display: flex;
+    gap: 5px;
+    margin-top: 5px;
+}
+
+.subThumb {
+    width: 30px;
+    height: 30px;
+    object-fit: cover;
+    border-radius: 4px;
+}
+
+/* PRICE */
+.old {
+    margin-left: 10px;
+    text-decoration: line-through;
+    color: #999;
+}
+
+/* BADGE */
+.badge {
+    padding: 5px 10px;
+    background: #e97171;
+    color: white;
+    border-radius: 20px;
+    font-size: 12px;
+}
+
+.qtyBox {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.qtyBox input {
+    width: 120px;
+    /* 🔥 smaller width */
+}
+
+.update {
+    border: none;
+    padding: 10px 20px;
+    margin: 20px;
+    background-color: #b88e2f;
+    color: white;
+    border-radius: 10px;
+}

@@ -1,0 +1,12 @@
+import express from 'express';
+import { createBlog, deleteBlog, getBlogById, getBlogs, updateBlog } from '../controllers/blogController.js';
+import { authorize, protect } from '../middlewares/authMiddleware.js';
+import validate from '../middlewares/validate.js';
+import { blogSchema } from '../validations/blogValidation.js';
+const router = express.Router();
+router.get('/', getBlogs);
+router.get('/:id', getBlogById);
+router.post('/', protect, authorize('admin'), validate(blogSchema), createBlog);
+router.patch('/:id', protect, authorize('admin'), validate(blogSchema), updateBlog);
+router.delete('/:id', protect, authorize('admin'), deleteBlog);
+export default router;

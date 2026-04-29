@@ -1,0 +1,12 @@
+import express from 'express';
+import { deleteUser, getUserById, getUsers, updateUserRole } from '../controllers/adminController.js';
+import { authorize, protect } from '../middlewares/authMiddleware.js';
+import validate from '../middlewares/validate.js';
+import { updateRoleSchema } from '../validations/adminValidation.js';
+const router = express.Router();
+router.use(protect, authorize('admin'));
+router.get('/users', getUsers);
+router.get('/users/:id', getUserById);
+router.patch('/users/:id/role', validate(updateRoleSchema), updateUserRole);
+router.delete('/users/:id', deleteUser);
+export default router;

@@ -1,0 +1,15 @@
+import express from 'express';
+import multer from 'multer';
+import { createProduct, deleteProduct, getProductById, getProducts, updateProduct } from '../controllers/productController.js';
+import { authorize, protect } from '../middlewares/authMiddleware.js';
+import validate from '../middlewares/validate.js';
+import { productSchema, updateProductSchema } from '../validations/productValidation.js';
+const router = express.Router();
+const storage = multer.diskStorage({ destination:'uploads/', filename:(_req,file,cb)=>cb(null,`${Date.now()}-${file.originalname.replace(/\s+/g,'-')}`) });
+const upload = multer({ storage });
+router.get('/', getProducts);
+router.get('/:id', getProductById);
+router.post('/', protect, authorize('admin'), upload.array('images',5), validate(productSchema), createProduct);
+router.patch('/:id', protect, authorize('admin'), upload.array('images',5), validate(updateProductSchema), updateProduct);
+router.delete('/:id', protect, authorize('admin'), deleteProduct);
+export default router;

@@ -1,0 +1,11 @@
+import express from 'express';
+import { forgotPassword, login, logout, resetPassword, signup } from '../controllers/authController.js';
+import validate from '../middlewares/validate.js';
+import { forgotPasswordSchema, loginSchema, resetPasswordSchema, signupSchema } from '../validations/authValidation.js';
+const router = express.Router();
+router.post('/signup', validate(signupSchema), signup);
+router.post('/login', validate(loginSchema), login);
+router.post('/logout', logout);
+router.post('/forgot-password', validate(forgotPasswordSchema), forgotPassword);
+router.post('/reset-password/:token', validate(resetPasswordSchema), resetPassword);
+export default router;

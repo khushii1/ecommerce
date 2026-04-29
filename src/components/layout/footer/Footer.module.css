@@ -1,0 +1,70 @@
+.footer {
+    padding: 60px 80px;
+    background: #fff;
+    border-top: 1px solid #ddd;
+}
+
+/* TOP SECTION */
+.top {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 2fr;
+    gap: 40px;
+}
+
+/* BRAND */
+.brand h2 {
+    font-size: 24px;
+    margin-bottom: 10px;
+}
+
+.brand p {
+    color: #777;
+    font-size: 14px;
+}
+
+/* LINKS */
+.top h4 {
+    margin-bottom: 15px;
+    color: #777;
+    font-size: 14px;
+
+    font-weight: 400;
+}
+
+.top ul {
+    list-style: none;
+    padding: 0;
+}
+
+.top ul li {
+    margin-bottom: 10px;
+    cursor: pointer;
+}
+
+/* NEWSLETTER */
+.newsletter {
+    display: flex;
+    gap: 10px;
+}
+
+.newsletter input {
+    border: none;
+    border-bottom: 1px solid black;
+    outline: none;
+    padding: 5px;
+}
+
+.newsletter button {
+    border: none;
+    background: transparent;
+    border-bottom: 1px solid black;
+    cursor: pointer;
+}
+
+/* BOTTOM */
+.bottom {
+    margin-top: 40px;
+    border-top: 1px solid #ddd;
+    padding-top: 20px;
+    font-size: 14px;
+}

@@ -1,0 +1,97 @@
+.card {
+    background: #f4f5f7;
+    overflow: hidden;
+}
+
+/* IMAGE */
+.imgContainer {
+    position: relative;
+}
+
+.imgContainer img {
+    width: 100%;
+    height: 280px;
+    object-fit: cover;
+}
+
+/* BADGE */
+.badge {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    padding: 6px 10px;
+    border-radius: 50px;
+    font-size: 12px;
+    color: white;
+}
+
+.discount {
+    background: #e97171;
+}
+
+.new {
+    /* background: #2ec1ac; */
+}
+
+/* OVERLAY */
+.overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+
+    opacity: 0;
+    transition: 0.3s;
+}
+
+.card:hover .overlay {
+    opacity: 1;
+}
+
+.overlay button {
+    background: white;
+    border: none;
+    padding: 10px 20px;
+    margin-bottom: 10px;
+    cursor: pointer;
+}
+
+.actions {
+    display: flex;
+    gap: 15px;
+    color: white;
+    font-size: 14px;
+}
+
+/* INFO */
+.info {
+    padding: 15px;
+}
+
+.info h3 {
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.info p {
+    font-size: 13px;
+    color: #777;
+}
+
+.price {
+    margin-top: 10px;
+}
+
+.new {
+    font-weight: 600;
+}
+
+.old {
+    margin-left: 10px;
+    text-decoration: line-through;
+    color: #999;
+}
