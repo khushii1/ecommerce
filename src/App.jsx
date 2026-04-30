@@ -12,22 +12,60 @@ import store from "./redux/store";
 import CartPage from "./pages/cart/CartPage";
 import Login from "./auth/login/Login";
 import Signup from "./auth/signup/Signup";
+import ProtectedRoute from "./routes/ProtectedRoute";
+import PublicRoute from "./routes/PublicRoute";
+import NonAdminRoute from "./routes/NonAdminRoute";
 
 const App = () => {
   return (
     <Provider store={store}>
       <Routes>
-        <Route path="login" element={<Login />} />
-        <Route path="signup" element={<Signup />} />
+        <Route
+          path="login"
+          element={
+            <PublicRoute>
+              <Login />
+            </PublicRoute>
+          }
+        />
+        <Route
+          path="signup"
+          element={
+            <PublicRoute>
+              <Signup />
+            </PublicRoute>
+          }
+        />
         <Route path="*" element={<Navigate to="/" />} />
         {/* 🌐 WEBSITE (DEFAULT) */}
-        <Route path="/" element={<MainLayout />}>
+        <Route
+          path="/"
+          element={
+            <NonAdminRoute>
+              <MainLayout />
+            </NonAdminRoute>
+          }
+        >
           <Route index element={<Home />} />
-          <Route path="cart" element={<CartPage />} />
+          <Route
+            path="cart"
+            element={
+              <ProtectedRoute>
+                <CartPage />
+              </ProtectedRoute>
+            }
+          />
         </Route>
 
         {/* 🔐 ADMIN PANEL */}
-        <Route path="/admin" element={<AdminLayout />}>
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute requiredRole="admin">
+              <AdminLayout />
+            </ProtectedRoute>
+          }
+        >
           <Route index element={<Navigate to="categories" />} />
           <Route path="categories" element={<Categories />} />
           <Route path="products" element={<Products />} />

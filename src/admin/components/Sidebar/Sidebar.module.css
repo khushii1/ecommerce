@@ -14,6 +14,12 @@
     margin-bottom: 30px;
 }
 
+.navLinks {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
 .link {
 
     display: block;
@@ -36,4 +42,19 @@
     padding: 10px;
     border-radius: 6px;
     margin-bottom: 20px;
+}
+
+.logoutBtn {
+    margin-top: auto;
+    width: 100%;
+    border: none;
+    border-radius: 8px;
+    padding: 10px;
+    background: #3b4a7b;
+    color: #fff;
+    cursor: pointer;
+}
+
+.logoutBtn:hover {
+    background: #2f3d68;
 }

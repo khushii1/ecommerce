@@ -1,4 +1,9 @@
+import { useLocation } from "react-router-dom";
+
 const AdminNavbar = () => {
+    const location = useLocation();
+    const title = location.pathname.includes("/admin/products") ? "Products" : "Categories";
+
     return (
         <div style={{
             height: "60px",
@@ -7,10 +12,9 @@ const AdminNavbar = () => {
             display: "flex",
             alignItems: "center",
             padding: "0 20px",
-            fontWeight: "600",
-            boxShadow: "0 2px 5px rgba(0,0,0,0.05)"
+            fontWeight: "600"
         }}>
-            Categories
+            {title}
         </div>
     );
 };

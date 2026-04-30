@@ -1,319 +1,291 @@
 import { useState } from "react";
 import styles from "./Product.module.css";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  createAdminProduct,
+  deleteAdminProduct,
+  getAdminProducts,
+  updateAdminProduct,
+} from "../../../api/admin_product.api";
+import { getAdminCategories } from "../../../api/admin_category.api";
+import Snackbar from "../../../components/ui/Snackbar";
 
-import { toBase64 } from "../../../utils/toBase";
-import { useDispatch, useSelector } from "react-redux";
-import { addProduct, deleteProduct, updateProduct } from "../../../redux/addProductSlice";
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5001";
 
 const Products = () => {
-    const dispatch = useDispatch();
-    const productsSelector = useSelector((state) => state.product.products || []);
-    const categorySelector = useSelector((state) => state.category.items || []);
-    const [error, setError] = useState("");
-    const [editId, setEditId] = useState(null);
-    const [formKey, setFormKey] = useState(0);
+  const queryClient = useQueryClient();
+  const [formError, setFormError] = useState("");
+  const [snackbar, setSnackbar] = useState({ open: false, message: "", type: "error" });
+  const [editId, setEditId] = useState(null);
+  const [fileInputKey, setFileInputKey] = useState(0);
+  const [form, setForm] = useState({
+    name: "",
+    description: "",
+    price: "",
+    oldPrice: "",
+    quantity: "",
+    category: "",
+    image: null,
+  });
 
-    const [form, setForm] = useState({
-        title: "",
-        description: "",
-        price: "",
-        oldPrice: "",
-        quantity: "",
-        categoryId: "",
-        mainImage: null,
+  const showSnackbar = (message, type = "error") => {
+    setSnackbar({ open: true, message, type });
+    setTimeout(() => setSnackbar({ open: false, message: "", type: "error" }), 3000);
+  };
+
+  const { data: productsData, isLoading, isError, error } = useQuery({
+    queryKey: ["admin-products"],
+    queryFn: getAdminProducts,
+  });
+
+  const { data: categoriesData } = useQuery({
+    queryKey: ["admin-categories"],
+    queryFn: getAdminCategories,
+  });
+
+  const createMutation = useMutation({
+    mutationFn: createAdminProduct,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-products"] });
+      showSnackbar("Product created successfully.", "success");
+      resetForm();
+    },
+    onError: (err) => showSnackbar(err.message || "Unable to create product."),
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: updateAdminProduct,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-products"] });
+      showSnackbar("Product updated successfully.", "success");
+      setEditId(null);
+      resetForm();
+    },
+    onError: (err) => showSnackbar(err.message || "Unable to update product."),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: deleteAdminProduct,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-products"] });
+      showSnackbar("Product deleted successfully.", "success");
+    },
+    onError: (err) => showSnackbar(err.message || "Unable to delete product."),
+  });
+
+  const products = productsData?.data?.products || [];
+  const categories = categoriesData?.data?.categories || [];
+  const toImageUrl = (path) => {
+    if (!path) return "";
+    if (path.startsWith("http://") || path.startsWith("https://") || path.startsWith("data:")) {
+      return path;
+    }
+    if (path.startsWith("/uploads/")) return `${API_BASE_URL}${path}`;
+    if (path.startsWith("uploads/")) return `${API_BASE_URL}/${path}`;
+    return path;
+  };
+
+  const resetForm = () => {
+    setForm({
+      name: "",
+      description: "",
+      price: "",
+      oldPrice: "",
+      quantity: "",
+      category: "",
+      image: null,
     });
+    setFileInputKey((prev) => prev + 1);
+  };
 
-    // LOAD DATA
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setForm((prev) => ({ ...prev, [name]: type === "checkbox" ? checked : value }));
+  };
 
+  const handleSubmit = () => {
+    setFormError("");
 
-    // SAVE DATA
+    if (!form.name.trim()) return setFormError("Product name is required");
+    if (!form.description.trim()) return setFormError("Description is required");
+    if (!form.price || Number(form.price) < 0) return setFormError("Price must be valid");
+    if (form.oldPrice && Number(form.oldPrice) < 0) return setFormError("Old price must be valid");
+    if (!form.quantity || Number(form.quantity) <= 0) return setFormError("Quantity must be valid");
+    if (!form.category) return setFormError("Please select category");
+    if (!editId && !form.image) return setFormError("Product image is required");
 
+    const computedBadge =
+      Number(form.oldPrice) > Number(form.price)
+        ? `-${Math.round(((Number(form.oldPrice) - Number(form.price)) / Number(form.oldPrice)) * 100)}%`
+        : "New";
 
-    // RESET FORM
-    const resetForm = () => {
-        setForm({
-            title: "",
-            description: "",
-            price: "",
-            oldPrice: "",
-            quantity: "",
-            categoryId: "",
-            mainImage: null,
-        });
-        setEditId(null);
-        setFormKey((prev) => prev + 1);
+    const payload = {
+      name: form.name,
+      description: form.description,
+      price: Number(form.price),
+      oldPrice: form.oldPrice ? Number(form.oldPrice) : "",
+      quantity: Number(form.quantity),
+      badge: computedBadge,
+      category: form.category,
+      image: form.image,
     };
 
-    const getBadge = (price, oldPrice) => {
-        if (!oldPrice) return "New";
-        const discount = Math.round(((oldPrice - price) / oldPrice) * 100);
-        return `-${discount}%`;
-    };
+    if (editId) {
+      updateMutation.mutate({ id: editId, ...payload });
+      return;
+    }
 
-    const handleChange = (e) => {
-        setForm({ ...form, [e.target.name]: e.target.value });
-    };
+    createMutation.mutate(payload);
+  };
 
-    const isValidNumber = (val) => /^\d+(\.\d+)?$/.test(val);
+  const handleEdit = (product) => {
+    setEditId(product._id);
+    setForm({
+      name: product.name || "",
+      description: product.description || "",
+      price: product.price ?? "",
+      oldPrice: product.oldPrice ?? "",
+      quantity: product.quantity ?? product.stock ?? "",
+      category: product.category?._id || product.category || "",
+      image: null,
+    });
+  };
 
-    const handleSubmit = async () => {
-        setError("");
+  return (
+    <div className={styles.container}>
+      <Snackbar
+        open={snackbar.open}
+        message={snackbar.message}
+        type={snackbar.type}
+        onClose={() => setSnackbar({ open: false, message: "", type: "error" })}
+      />
+      <h2>Products</h2>
 
-        if (!form.title.trim()) return setError("Product name required");
-        if (!form.description.trim()) return setError("Description required");
+      <div className={styles.form}>
+        <input name="name" placeholder="Product Name" value={form.name} onChange={handleChange} />
+        <input
+          name="description"
+          placeholder="Product Description"
+          value={form.description}
+          onChange={handleChange}
+        />
+        <input
+          type="number"
+          min="0"
+          name="oldPrice"
+          placeholder="Old Price"
+          value={form.oldPrice}
+          onChange={handleChange}
+        />
+        <input
+          type="number"
+          min="1"
+          name="quantity"
+          placeholder="Quantity"
+          value={form.quantity}
+          onChange={handleChange}
+        />
+        <input
+          type="number"
+          min="0"
+          name="price"
+          placeholder="Price"
+          value={form.price}
+          onChange={handleChange}
+        />
 
-        if (!isValidNumber(form.price))
-            return setError("Price must be number");
+        <select name="category" value={form.category} onChange={handleChange}>
+          <option value="">Select Category</option>
+          {categories.map((cat) => (
+            <option key={cat._id} value={cat._id}>
+              {cat.name}
+            </option>
+          ))}
+        </select>
 
-        if (form.oldPrice && !isValidNumber(form.oldPrice))
-            return setError("Old price must be number");
-
-        if (!form.categoryId) return setError("Select category");
-
-        if (!form.quantity || Number(form.quantity) <= 0)
-            return setError("Quantity must be > 0");
-
-        // 🔥 image size limit
-        // if (form.mainImage && form.mainImage.size > 200 * 1024)
-        //     return setError("Image must be under 200KB");
-
-        let mainImage = null;
-
-        if (form.mainImage) {
-            mainImage = await toBase64(form.mainImage);
-        }
-
-        // ADD
-        if (!editId) {
-            if (!mainImage) return setError("Main image required");
-
-            const newProduct = {
-                id: Date.now(),
-                title: form.title,
-                description: form.description,
-                price: Number(form.price),
-                oldPrice: Number(form.oldPrice) || null,
-                quantity: Number(form.quantity),
-                categoryId: form.categoryId,
-                mainImage,
-                badge: getBadge(
-                    Number(form.price),
-                    Number(form.oldPrice)
-                ),
-            };
-            dispatch(addProduct(newProduct));
-
-
-        }
-
-        // UPDATE
-        else {
-            dispatch(
-                updateProduct({
-                    id: editId,
-                    data: {
-                        title: form.title,
-                        description: form.description,
-                        price: Number(form.price),
-                        oldPrice: Number(form.oldPrice) || null,
-                        quantity: Number(form.quantity),
-                        categoryId: form.categoryId,
-                        ...(mainImage ? { mainImage } : {}),
-                        badge: getBadge(
-                            Number(form.price),
-                            Number(form.oldPrice)
-                        ),
-                    },
-                })
-            );
-
-        }
-
-        resetForm();
-    };
-
-    const handleDelete = (id) => {
-        dispatch(deleteProduct(id));
-    };
-
-    const handleEdit = (p) => {
-        setForm({
-            title: p.title,
-            description: p.description,
-            price: p.price,
-            oldPrice: p.oldPrice || "",
-            quantity: p.quantity,
-            categoryId: p.categoryId,
-            mainImage: null,
-        });
-        setEditId(p.id);
-    };
-
-    const getCategoryName = (id) => {
-        const cat = categorySelector.find((c) => c.id == id);
-        return cat ? cat.name : "N/A";
-    };
-
-    return (
-        <div className={styles.container}>
-            <h2>Products</h2>
-
-            {/* FORM */}
-            <div key={formKey} className={styles.form}>
-                <input
-                    name="title"
-                    placeholder="Product Name"
-                    value={form.title}
-                    onChange={handleChange}
-                />
-
-                <input
-                    name="description"
-                    placeholder="Product Description"
-                    value={form.description}
-                    onChange={handleChange}
-                />
-
-                <div className={styles.priceInput}>
-                    <span>₹</span>
-                    <input
-                        name="price"
-                        placeholder="Price"
-                        value={form.price}
-                        onChange={handleChange}
-                    />
-                </div>
-
-                <div className={styles.priceInput}>
-                    <span>₹</span>
-                    <input
-                        name="oldPrice"
-                        placeholder="Old Price"
-                        value={form.oldPrice}
-                        onChange={handleChange}
-                    />
-                </div>
-
-                <div className={styles.qtyBox}>
-                    <label>Quantity</label>
-                    <input
-                        type="number"
-                        min="1"
-                        name="quantity"
-                        value={form.quantity}
-                        onChange={handleChange}
-                    />
-                </div>
-
-                <select
-                    name="categoryId"
-                    value={form.categoryId}
-                    onChange={handleChange}
-                >
-                    <option value="">Select Category</option>
-                    {categorySelector.map((cat) => (
-                        <option key={cat.id} value={cat.id}>
-                            {cat.name}
-                        </option>
-                    ))}
-                </select>
-
-                <div className={styles.fileBox}>
-                    <label>Main Image</label>
-                    <input
-                        type="file"
-                        onChange={(e) =>
-                            setForm({ ...form, mainImage: e.target.files[0] })
-                        }
-                    />
-                </div>
-
-                <button onClick={handleSubmit}>
-                    {editId ? "Update Product" : "Add Product"}
-                </button>
-            </div>
-
-            {error && <p className={styles.error}>{error}</p>}
-
-            {/* TABLE */}
-            <table className={styles.table}>
-                <thead>
-                    <tr>
-                        <th>Image</th>
-                        <th>Name</th>
-                        <th>Description</th>
-                        <th>Category</th>
-                        <th>Price</th>
-                        <th>Qty</th>
-                        <th>Badge</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-
-                <tbody>
-                    {productsSelector.length === 0 ? (
-                        <tr>
-                            <td colSpan="8">No products found</td>
-                        </tr>
-                    ) : (
-                        productsSelector.map((p) => (
-                            <tr key={p.id}>
-                                <td>
-                                    <img
-                                        src={p.mainImage}
-                                        className={styles.thumb}
-                                    />
-                                </td>
-
-                                <td>{p.title}</td>
-
-                                <td>
-                                    {p.description.length > 40
-                                        ? p.description.slice(0, 40) + "..."
-                                        : p.description}
-                                </td>
-
-                                <td>{getCategoryName(p.categoryId)}</td>
-
-                                <td>
-                                    ₹{p.price}
-                                    {p.oldPrice && (
-                                        <span className={styles.old}>
-                                            ₹{p.oldPrice}
-                                        </span>
-                                    )}
-                                </td>
-
-                                <td>{p.quantity}</td>
-
-                                <td>
-                                    <span className={styles.badge}>
-                                        {p.badge}
-                                    </span>
-                                </td>
-
-                                <td>
-                                    <button
-                                        className={styles.update}
-                                        onClick={() => handleEdit(p)}
-                                    >
-                                        Edit
-                                    </button>
-
-                                    <button
-                                        className={styles.update}
-                                        onClick={() => handleDelete(p.id)}
-                                    >
-                                        Delete
-                                    </button>
-                                </td>
-                            </tr>
-                        ))
-                    )}
-                </tbody>
-            </table>
+        <div className={styles.fileBox}>
+          <label>Product Image</label>
+          <input
+            key={fileInputKey}
+            type="file"
+            accept="image/*"
+            onChange={(e) => setForm((prev) => ({ ...prev, image: e.target.files?.[0] || null }))}
+          />
         </div>
-    );
+
+        <button
+          onClick={handleSubmit}
+          disabled={createMutation.isPending || updateMutation.isPending}
+        >
+          {editId ? "Update Product" : "Add Product"}
+        </button>
+      </div>
+
+      {formError ? <p className={styles.error}>{formError}</p> : null}
+      {isError ? <p className={styles.error}>{error.message}</p> : null}
+
+      <table className={styles.table}>
+        <thead>
+          <tr>
+            <th>Image</th>
+            <th>Name</th>
+            <th>Description</th>
+            <th>Category</th>
+            <th>Old Price</th>
+            <th>Price</th>
+            <th>Qty</th>
+            <th>Badge</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {isLoading ? (
+            <tr>
+              <td colSpan="10">Loading products...</td>
+            </tr>
+          ) : products.length === 0 ? (
+            <tr>
+              <td colSpan="10">No products found</td>
+            </tr>
+          ) : (
+            products.map((p) => (
+              <tr key={p._id}>
+                <td>
+                  {p.images?.[0] ? (
+                    <img
+                      src={toImageUrl(p.images[0])}
+                      className={styles.thumb}
+                      alt={p.name}
+                      onError={(e) => {
+                        e.currentTarget.style.display = "none";
+                      }}
+                    />
+                  ) : (
+                    "-"
+                  )}
+                </td>
+                <td>{p.name}</td>
+                <td>{p.description || "-"}</td>
+                <td>{p.category?.name || "-"}</td>
+                <td>{p.oldPrice ? `₹${p.oldPrice}` : "-"}</td>
+                <td>₹{p.price}</td>
+                <td>{p.quantity ?? p.stock ?? 0}</td>
+                <td>{p.badge || "-"}</td>
+                <td>
+                  <button className={styles.update} onClick={() => handleEdit(p)}>
+                    Edit
+                  </button>
+                  <button className={styles.update} onClick={() => deleteMutation.mutate(p._id)}>
+                    Delete
+                  </button>
+                </td>
+              </tr>
+            ))
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
 };
 
 export default Products;

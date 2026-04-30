@@ -1,0 +1,32 @@
+.snackbar {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 9999;
+  min-width: 260px;
+  max-width: 420px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.18);
+}
+
+.error {
+  background: #c0392b;
+}
+
+.success {
+  background: #2e7d32;
+}
+
+.closeBtn {
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}

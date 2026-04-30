@@ -4,13 +4,13 @@ import AdminNavbar from "./AdminNavbar";
 
 const AdminLayout = () => {
     return (
-        <div style={{ display: "flex", height: "100vh" }}>
+        <div style={{ display: "flex", minHeight: "100vh", background: "#f6f7fb" }}>
             <Sidebar />
 
-            <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+            <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
                 <AdminNavbar />
 
-                <div style={{ padding: "20px" }}>
+                <div style={{ padding: "20px", overflowX: "auto" }}>
                     <Outlet />
                 </div>
             </div>

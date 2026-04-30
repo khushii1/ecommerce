@@ -1,26 +1,31 @@
 import { useState } from "react";
 import styles from "./Categories.module.css";
-
-import { useDispatch, useSelector } from "react-redux";
-import { addCategory, deleteCategory, updateCategory } from "../../../redux/addCategorySlice";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+    createAdminCategory,
+    deleteAdminCategory,
+    getAdminCategories,
+    updateAdminCategory,
+} from "../../../api/admin_category.api";
+import Snackbar from "../../../components/ui/Snackbar";
 
 const Categories = () => {
-    const dispatch = useDispatch();
-    const categoriesSelector = useSelector((state) => state.category.items || []);
-    const [error, setError] = useState("");
-    const [fileInputKey, setFileInputKey] = useState(0);
-    const [editImagePreview, setEditImagePreview] = useState(null);
-    const [editImageName, setEditImageName] = useState("");
-
+    const queryClient = useQueryClient();
+    const [formError, setFormError] = useState("");
+    const [snackbar, setSnackbar] = useState({ open: false, message: "", type: "error" });
     const [editId, setEditId] = useState(null);
-
-    // ✅ Single form state
+    const [fileInputKey, setFileInputKey] = useState(0);
     const [form, setForm] = useState({
         name: "",
         image: null,
+        description: "",
     });
 
-    // ✅ Convert image to base64
+    const showSnackbar = (message, type = "error") => {
+        setSnackbar({ open: true, message, type });
+        setTimeout(() => setSnackbar({ open: false, message: "", type: "error" }), 3000);
+    };
+
     const toBase64 = (file) =>
         new Promise((resolve, reject) => {
             const reader = new FileReader();
@@ -29,82 +34,106 @@ const Categories = () => {
             reader.onerror = reject;
         });
 
+    const { data, isLoading, isError, error } = useQuery({
+        queryKey: ["admin-categories"],
+        queryFn: getAdminCategories,
+    });
+
+    const createMutation = useMutation({
+        mutationFn: createAdminCategory,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["admin-categories"] });
+            showSnackbar("Category created successfully.", "success");
+            setForm({ name: "", image: null, description: "" });
+            setFileInputKey((prev) => prev + 1);
+        },
+        onError: (err) => {
+            showSnackbar(err.message || "Unable to create category.");
+        },
+    });
+
+    const updateMutation = useMutation({
+        mutationFn: updateAdminCategory,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["admin-categories"] });
+            showSnackbar("Category updated successfully.", "success");
+            setEditId(null);
+            setForm({ name: "", image: null, description: "" });
+            setFileInputKey((prev) => prev + 1);
+        },
+        onError: (err) => {
+            showSnackbar(err.message || "Unable to update category.");
+        },
+    });
+
+    const deleteMutation = useMutation({
+        mutationFn: deleteAdminCategory,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["admin-categories"] });
+            showSnackbar("Category deleted successfully.", "success");
+        },
+        onError: (err) => {
+            showSnackbar(err.message || "Unable to delete category.");
+        },
+    });
+
+    const categories = data?.data?.categories || [];
+
     const handleSubmit = async () => {
-        setError("");
+        setFormError("");
 
-        // VALIDATION
         if (!form.name.trim()) {
-            setError("Category name is required");
+            const message = "Category name is required";
+            setFormError(message);
+            showSnackbar(message);
             return;
         }
 
-        // For ADD → image required
         if (!editId && !form.image) {
-            setError("Category image is required");
+            const message = "Category image is required";
+            setFormError(message);
+            showSnackbar(message);
             return;
         }
 
-        const image = form.image
-            ? await toBase64(form.image)
-            : null;
+        const payload = {
+            name: form.name.trim(),
+            description: form.description.trim(),
+        };
+
+        if (form.image) {
+            payload.image = await toBase64(form.image);
+        }
 
         if (editId) {
-            dispatch(
-                updateCategory({
-                    id: editId,
-                    data: {
-                        name: form.name,
-                        ...(image
-                            ? { image, imageName: form.image.name }
-                            : {}),
-                    },
-                })
-            );
-            setEditId(null);
-            setEditImagePreview(null);
-            setEditImageName("");
+            updateMutation.mutate({ id: editId, ...payload });
         } else {
-            const newCategory = {
-                id: Date.now(),
-                name: form.name,
-                image,
-                imageName: form.image?.name || "",
-            };
-
-
-
-            dispatch(addCategory(newCategory));
-
+            createMutation.mutate(payload);
         }
-
-        setForm({ name: "", image: null });
-        setFileInputKey((prev) => prev + 1);
-        setEditImagePreview(null);
-        setEditImageName("");
     };
 
-    // ✅ DELETE
     const handleDelete = (id) => {
-        dispatch(deleteCategory(id));
+        deleteMutation.mutate(id);
     };
 
-    // ✅ EDIT
     const handleEdit = (cat) => {
         setForm({
             name: cat.name,
             image: null,
+            description: cat.description || "",
         });
-        setEditId(cat.id);
-        setEditImagePreview(cat.image || null);
-        setEditImageName(cat.imageName || "Image uploaded");
+        setEditId(cat._id);
     };
 
     return (
         <div className={styles.container}>
+            <Snackbar
+                open={snackbar.open}
+                message={snackbar.message}
+                type={snackbar.type}
+                onClose={() => setSnackbar({ open: false, message: "", type: "error" })}
+            />
             <h2>Categories</h2>
-
-            {/* FORM */}
-
             <div className={styles.form}>
                 <input
                     type="text"
@@ -114,58 +143,70 @@ const Categories = () => {
                         setForm({ ...form, name: e.target.value })
                     }
                 />
-
                 <input
                     key={fileInputKey}
                     type="file"
+                    accept="image/*"
                     onChange={(e) =>
-                        setForm({ ...form, image: e.target.files[0] })
+                        setForm({ ...form, image: e.target.files?.[0] || null })
                     }
                 />
 
-
-                {/* PREVIEW */}
-
-
-                <button onClick={handleSubmit}>
+                <input
+                    type="text"
+                    placeholder="Enter description (optional)"
+                    value={form.description}
+                    onChange={(e) =>
+                        setForm({ ...form, description: e.target.value })
+                    }
+                />
+                <button
+                    onClick={handleSubmit}
+                    disabled={createMutation.isPending || updateMutation.isPending}
+                >
                     {editId ? "Update" : "Add"}
                 </button>
             </div>
-            {error && <p className={styles.error}>{error}</p>}
+            {formError && <p className={styles.error}>{formError}</p>}
+            {isError ? <p className={styles.error}>{error.message}</p> : null}
 
-            {/* TABLE */}
             <table className={styles.table}>
                 <thead>
                     <tr>
                         <th>#</th>
                         <th>Image</th>
                         <th>Category Name</th>
+                        <th>Description</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
 
                 <tbody>
-                    {categoriesSelector.length === 0 ? (
+                    {isLoading ? (
                         <tr>
-                            <td colSpan="4">No categories found</td>
+                            <td colSpan="5">Loading categories...</td>
+                        </tr>
+                    ) : categories.length === 0 ? (
+                        <tr>
+                            <td colSpan="5">No categories found</td>
                         </tr>
                     ) : (
-                        categoriesSelector.map((cat, index) => (
-                            <tr key={cat.id}>
+                        categories.map((cat, index) => (
+                            <tr key={cat._id}>
                                 <td>{index + 1}</td>
-
-                                {/* ✅ IMAGE COLUMN */}
                                 <td>
-                                    {cat.image && (
+                                    {cat.image ? (
                                         <img
                                             src={cat.image}
                                             className={styles.thumb}
-                                            alt=""
+                                            alt={cat.name}
                                         />
+                                    ) : (
+                                        "-"
                                     )}
                                 </td>
-
                                 <td>{cat.name}</td>
+                                <td>{cat.description || "-"}</td>
 
                                 <td>
                                     <button
@@ -177,7 +218,7 @@ const Categories = () => {
 
                                     <button
                                         className={styles.delete}
-                                        onClick={() => handleDelete(cat.id)}
+                                        onClick={() => handleDelete(cat._id)}
                                     >
                                         Delete
                                     </button>

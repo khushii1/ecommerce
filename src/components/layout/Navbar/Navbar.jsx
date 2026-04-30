@@ -1,23 +1,29 @@
 import styles from './Navbar.module.css';
 import logo from '../../../assets/logo.png';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { BsPerson } from "react-icons/bs";
 import { IoIosSearch } from "react-icons/io";
 import { IoClose, IoHeartOutline, IoCartOutline } from "react-icons/io5";
 import { useDispatch, useSelector } from 'react-redux';
 import { removeFromCart } from '../../../redux/addToCartSlice';
 import { useEffect, useMemo, useState } from 'react';
+import { logoutUser } from '../../../api/auth.api';
+import { getData, removeData } from '../../../utils/localStorage';
 
 
 const Navbar = () => {
+    const navigate = useNavigate();
     const dispatch = useDispatch();
     const cartSelector = useSelector((state) => state.cart.items || []);
     const [isCartOpen, setIsCartOpen] = useState(false);
+    const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+    const [authUser, setAuthUser] = useState(() => getData("authUser"));
     const count = cartSelector.reduce((sum, item) => sum + item.qty, 0);
     const total = useMemo(
         () => cartSelector.reduce((sum, item) => sum + (Number(item.price) || 0) * item.qty, 0),
         [cartSelector]
     );
+    const initial = (authUser?.name || authUser?.email || "U").charAt(0).toUpperCase();
 
     useEffect(() => {
         if (!isCartOpen) return;
@@ -28,6 +34,29 @@ const Navbar = () => {
         return () => window.removeEventListener("keydown", onEscape);
     }, [isCartOpen]);
 
+    useEffect(() => {
+        const syncUser = () => setAuthUser(getData("authUser"));
+        window.addEventListener("storage", syncUser);
+        window.addEventListener("focus", syncUser);
+        return () => {
+            window.removeEventListener("storage", syncUser);
+            window.removeEventListener("focus", syncUser);
+        };
+    }, []);
+
+    const handleLogout = async () => {
+        try {
+            await logoutUser();
+        } catch (_error) {
+            // Clear client auth even if backend logout fails.
+        } finally {
+            removeData("authToken");
+            removeData("authUser");
+            setAuthUser(null);
+            setIsProfileMenuOpen(false);
+            navigate("/login", { replace: true });
+        }
+    };
 
     return (
         <>
@@ -45,7 +74,28 @@ const Navbar = () => {
                 </ul>
 
                 <div className={styles.icons}>
-                    <NavLink to="#"><BsPerson /></NavLink>
+                    {authUser ? (
+                        <div className={styles.profileWrap}>
+                            <button
+                                type="button"
+                                className={styles.profileBtn}
+                                onClick={() => setIsProfileMenuOpen((prev) => !prev)}
+                                aria-label="Open profile menu"
+                            >
+                                {initial}
+                            </button>
+                            {isProfileMenuOpen ? (
+                                <div className={styles.profileMenu}>
+                                    <p className={styles.profileName}>{authUser.name || authUser.email}</p>
+                                    <button type="button" onClick={handleLogout} className={styles.logoutBtn}>
+                                        Logout
+                                    </button>
+                                </div>
+                            ) : null}
+                        </div>
+                    ) : (
+                        <NavLink to="/login"><BsPerson /></NavLink>
+                    )}
                     <NavLink to="#"><IoIosSearch /></NavLink>
                     <NavLink to="#"><IoHeartOutline /></NavLink>
 
